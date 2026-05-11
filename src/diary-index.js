@@ -15,11 +15,11 @@ const args = process.argv.slice(2);
 if (args.length >= 2) {
 return { start: args[0], end: args[1] };
 }
-// 기본값: 최근 3개월
+// 기본값: 최근 7일 (주간 리포트)
 const today = getKSTToday();
-const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+const weekAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
 .toISOString().slice(0, 10);
-return { start: threeMonthsAgo, end: today };
+return { start: weekAgo, end: today };
 }
 
 async function main() {
