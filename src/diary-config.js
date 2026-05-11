@@ -11,7 +11,7 @@ let currentLines = [];
 for (const line of raw.split('\n')) {
 const trimmed = line.trim();
 if (!trimmed || trimmed.startsWith('#')) continue;
-const m = trimmed.match(/^[(.+)]$/);
+const m = trimmed.match(/^\[(.+)\]$/);
 if (m) {
 if (currentSection) sections[currentSection] = currentLines;
 currentSection = m[1];
