@@ -1,9 +1,9 @@
-require(‘dotenv’).config();
+require('dotenv').config();
 
-const { getDiaryEntries, aggregateDiaryStats, getKSTToday } = require(’./diary-read’);
-const { analyzeDiaryData } = require(’./diary-analyzer’);
-const { buildDiaryReportBlocks } = require(’./diary-blocks’);
-const { upsertDiaryReportPage } = require(’./diary-write’);
+const { getDiaryEntries, aggregateDiaryStats, getKSTToday } = require('./diary-read');
+const { analyzeDiaryData } = require('./diary-analyzer');
+const { buildDiaryReportBlocks } = require('./diary-blocks');
+const { upsertDiaryReportPage } = require('./diary-write');
 
 function log(msg) {
 console.log(`[${new Date().toISOString()}] ${msg}`);
@@ -23,7 +23,7 @@ return { start: weekAgo, end: today };
 }
 
 async function main() {
-log(’=== 일기 분석 리포트 시작 ===’);
+log('=== 일기 분석 리포트 시작 ===');
 
 const { start, end } = parseDateArgs();
 log(`분석 기간: ${start} ~ ${end}`);
@@ -33,7 +33,7 @@ let entries;
 try {
 entries = await getDiaryEntries(start, end);
 if (entries.length === 0) {
-log(‘해당 기간에 일기가 없습니다.’);
+log('해당 기간에 일기가 없습니다.');
 process.exit(0);
 }
 log(`일기 ${entries.length}개 로드 완료`);
@@ -51,7 +51,7 @@ log(`기록률: ${stats.writingRate}%`);
 let analysis;
 try {
 analysis = await analyzeDiaryData(stats);
-log(‘AI 분석 완료’);
+log('AI 분석 완료');
 } catch (err) {
 log(`[오류] AI 분석 실패: ${err.message}`);
 process.exit(1);
@@ -70,10 +70,10 @@ log(`[오류] 노션 업로드 실패: ${err.message}`);
 process.exit(1);
 }
 
-log(’=== 일기 분석 리포트 완료 ===’);
+log('=== 일기 분석 리포트 완료 ===');
 }
 
 main().catch(err => {
-console.error(’[FATAL]’, err);
+console.error('[FATAL]', err);
 process.exit(1);
 });
