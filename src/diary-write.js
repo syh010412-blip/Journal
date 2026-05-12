@@ -44,7 +44,7 @@ console.log(`[diary-write] 페이지: "${title}"`);
 const existing = await findExistingPage(REPORT_DB_ID, title);
 
 if (existing) {
-console.log('[diary-write] 기존 페이지 업데이트…');
+console.log('[diary-write] 기존 페이지 업데이트...');
 await clearPageBlocks(existing.id);
 await appendBlocksInChunks(existing.id, blocks);
 console.log('[diary-write] 업데이트 완료');

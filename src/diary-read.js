@@ -1,7 +1,7 @@
-require(‘dotenv’).config();
+require('dotenv').config();
 
-const { Client } = require(’@notionhq/client’);
-const { getDiaryConfig } = require(’./diary-config’);
+const { Client } = require('@notionhq/client');
+const { getDiaryConfig } = require('./diary-config');
 
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
 
@@ -11,7 +11,7 @@ return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 // ─── 페이지 본문 텍스트 읽기 ──────────────────────────────
 async function getPageBodyText(pageId, maxLen) {
-let text = ‘’;
+let text = '';
 let cursor;
 try {
 do {
@@ -21,7 +21,7 @@ block_id: pageId, start_cursor: cursor, page_size: 50,
 for (const block of res.results) {
 const richTexts = block[block.type]?.rich_text || block[block.type]?.text || [];
 if (Array.isArray(richTexts)) {
-text += richTexts.map(t => t.plain_text).join(’’) + ’ ’;
+text += richTexts.map(t => t.plain_text).join('') + ' ';
 }
 if (text.length > maxLen * 2) break;
 }
@@ -36,13 +36,13 @@ function parseDiaryPage(page) {
 const { DAY_NAMES } = getDiaryConfig();
 const props = page.properties;
 
-const dateStr = props[‘Date’]?.date?.start || null;
-const comment = (props[‘Comment’]?.rich_text || []).map(t => t.plain_text).join(’’).trim();
-const title   = (props[‘Title’]?.title || []).map(t => t.plain_text).join(’’).trim();
+const dateStr = props['Date']?.date?.start || null;
+const comment = (props['Comment']?.rich_text || []).map(t => t.plain_text).join('').trim();
+const title   = (props['Title']?.title || []).map(t => t.plain_text).join('').trim();
 
 let dayOfWeek = null, dayIndex = null;
 if (dateStr) {
-const d = new Date(dateStr + ‘T00:00:00’);
+const d = new Date(dateStr + 'T00:00:00');
 dayIndex = d.getDay();
 dayOfWeek = DAY_NAMES[dayIndex];
 }
@@ -61,15 +61,15 @@ const res = await notion.databases.query({
 database_id: DIARY_DB_ID,
 filter: {
 and: [
-{ property: ‘Date’, date: { on_or_after: startDate } },
-{ property: ‘Date’, date: { on_or_before: endDate } },
+{ property: 'Date', date: { on_or_after: startDate } },
+{ property: 'Date', date: { on_or_before: endDate } },
 ],
 },
-sorts: [{ property: ‘Date’, direction: ‘ascending’ }],
+sorts: [{ property: 'Date', direction: 'ascending' }],
 start_cursor: cursor,
 page_size: 100,
 });
-allResults.push(…res.results);
+allResults.push(...res.results);
 cursor = res.has_more ? res.next_cursor : undefined;
 } while (cursor);
 
@@ -78,14 +78,14 @@ const entries = allResults.map(parseDiaryPage).filter(e => e.dateStr);
 
 // 본문 텍스트 로드
 if (OUTPUT.includeBody && entries.length > 0) {
-console.log(’[diary-read] 본문 텍스트 로드 중…’);
+console.log('[diary-read] 본문 텍스트 로드 중...');
 for (let i = 0; i < entries.length; i++) {
 entries[i].bodyText = await getPageBodyText(entries[i].pageId, OUTPUT.bodyMaxLen);
 if ((i + 1) % 5 === 0 || i === entries.length - 1) {
 process.stdout.write(`\r  ${i + 1}/${entries.length} 완료`);
 }
 }
-console.log(’’);
+console.log('');
 }
 
 return entries;
@@ -97,9 +97,9 @@ const { classifyEmotionFromText, classifyTopics, DAY_NAMES, OUTPUT } = getDiaryC
 
 // 각 entry에 감정/주제 분류 추가
 const enriched = entries.map(e => {
-const fullText = [e.comment, e.bodyText].filter(Boolean).join(’ ’);
+const fullText = [e.comment, e.bodyText].filter(Boolean).join(' ');
 return {
-…e,
+...e,
 emotionDirection: classifyEmotionFromText(fullText),
 topics: classifyTopics(fullText),
 fullText,
@@ -180,9 +180,9 @@ const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOStri
 const entries = await getDiaryEntries(threeMonthsAgo, today);
 const stats = aggregateDiaryStats(entries);
 console.log(`\n총 ${stats.total}개 | 기간: ${stats.dateRange?.start} ~ ${stats.dateRange?.end}`);
-console.log(‘감정 분포:’, stats.directionCount);
-console.log(‘상위 키워드:’, stats.topKeywords.slice(0, 5));
-console.log(‘월별:’, stats.monthlyStats.map(m => `${m.ym}:${m.count}개`).join(’, ’));
+console.log('감정 분포:', stats.directionCount);
+console.log('상위 키워드:', stats.topKeywords.slice(0, 5));
+console.log('월별:', stats.monthlyStats.map(m => `${m.ym}:${m.count}개`).join(', '));
 }
 
 if (require.main === module) test();
