@@ -33,5 +33,5 @@ jobs:
         env:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          NOTION_DIARY_DB_ID: 213a3bd9-3958-811a-bdb0-000bb131e523
-          NOTION_DIARY_REPORT_DB_ID: 34da3bd9-3958-8007-82ee-efb717e2658f
+          NOTION_DIARY_DB_ID: 310a3bd9-3958-808f-8b7e-ebeb6225d1b1
+          NOTION_DIARY_REPORT_DB_ID: 359a3bd9-3958-8029-9ac6-f00fc8ceaa78
