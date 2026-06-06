@@ -119,4 +119,20 @@ if (!_cached) _cached = loadDiaryConfig();
 return _cached;
 }
 
-module.exports = { getDiaryConfig };
+function loadRehabConfig() {
+const sections = parseConfigFile();
+const raw = parseKV(sections['재활 DB 설정'] || []);
+return {
+REHAB_DB_ID: raw['재활_DB_ID'] || process.env.NOTION_REHAB_DB_ID || '',
+DATE_PROP:   raw['날짜_속성']   || 'Date',
+PAIN_PROP:   raw['통증레벨_속성'] || '통증 레벨',
+};
+}
+
+let _rehabCached = null;
+function getRehabConfig() {
+if (!_rehabCached) _rehabCached = loadRehabConfig();
+return _rehabCached;
+}
+
+module.exports = { getDiaryConfig, getRehabConfig };
