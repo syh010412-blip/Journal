@@ -1,4 +1,4 @@
-name: 주간 일기 & 재활 분석 리포트
+name: 주간 통합 리포트 (일기 + 재활)
 
 on:
   schedule:
@@ -14,7 +14,7 @@ on:
         required: false
 
 jobs:
-  analyze-diary:
+  weekly-report:
     runs-on: ubuntu-latest
     steps:
       - name: 코드 체크아웃
@@ -23,36 +23,15 @@ jobs:
       - name: 의존성 설치
         run: npm ci
 
-      - name: 일기 분석 리포트 생성
+      - name: 주간 통합 리포트 생성 (일기 + 재활)
         run: |
           if [ -n "${{ github.event.inputs.start_date }}" ] && [ -n "${{ github.event.inputs.end_date }}" ]; then
-            node src/diary-index.js "${{ github.event.inputs.start_date }}" "${{ github.event.inputs.end_date }}"
+            node src/weekly-report.js "${{ github.event.inputs.start_date }}" "${{ github.event.inputs.end_date }}"
           else
-            node src/diary-index.js
+            node src/weekly-report.js
           fi
         env:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           NOTION_DIARY_DB_ID: 213a3bd9-3958-811a-bdb0-000bb131e523
-          NOTION_DIARY_REPORT_DB_ID: 359a3bd9-3958-8029-9ac6-f00fc8ceaa78
-
-  analyze-rehab:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 코드 체크아웃
-        run: git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
-
-      - name: 의존성 설치
-        run: npm ci
-
-      - name: 재활 리포트 생성
-        run: |
-          if [ -n "${{ github.event.inputs.start_date }}" ] && [ -n "${{ github.event.inputs.end_date }}" ]; then
-            node src/rehab-index.js "${{ github.event.inputs.start_date }}" "${{ github.event.inputs.end_date }}"
-          else
-            node src/rehab-index.js
-          fi
-        env:
-          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           NOTION_DIARY_REPORT_DB_ID: 359a3bd9-3958-8029-9ac6-f00fc8ceaa78
