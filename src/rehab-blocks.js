@@ -28,10 +28,26 @@ function trendEmoji(trend) {
   return { '개선': '📉✅', '악화': '📈⚠️', '유지': '➡️', '데이터부족': '—' }[trend] || '—';
 }
 
+function conditionEmoji(condition) {
+  const map = { '최고': '🌟', '좋음': '😊', '보통': '😐', '나쁨': '😔', '매우나쁨': '😢' };
+  return map[condition] || '';
+}
+
+function armBar(level) {
+  if (level === null) return '—';
+  const filled = Math.round(level);
+  const empty = 10 - filled;
+  return '🟢'.repeat(filled) + '⬜'.repeat(Math.max(0, empty)) + `  ${level}/10`;
+}
+
 // ─── 메인 빌더 ─────────────────────────────────────────────
 function buildRehabReportBlocks(stats, analysis) {
   const blocks = [];
-  const { totalSessions, totalDays, dateRange, avgPain, painTrend, firstAvg, secondAvg, topExercises, dayStats, dailyPainTrend } = stats;
+  const {
+    totalSessions, totalDays, dateRange, avgPain, avgArmMovement,
+    painTrend, armTrend, firstAvg, secondAvg, firstArmAvg, secondArmAvg,
+    topExercises, conditionDist, moodDist, dayStats, dailyPainTrend,
+  } = stats;
 
   // ── 헤더 ──
   blocks.push(callout(
@@ -49,6 +65,12 @@ function buildRehabReportBlocks(stats, analysis) {
     rt('평균 통증: ', true),
     rt(avgPain !== null ? `${avgPain}/10` : '—', false, painColor(avgPain)),
   ]));
+  if (avgArmMovement !== null) {
+    blocks.push(p([
+      rt('평균 왼팔 움직임: ', true),
+      rt(`${avgArmMovement}/10`, false, avgArmMovement >= 7 ? 'green' : avgArmMovement >= 4 ? 'yellow' : 'red'),
+    ]));
+  }
   blocks.push(p([
     rt('통증 추이: ', true),
     rt(`${trendEmoji(painTrend)} ${painTrend}`, false,
@@ -59,6 +81,30 @@ function buildRehabReportBlocks(stats, analysis) {
       rt('  초반 평균: ', false, 'gray'), rt(`${firstAvg}/10  `, false, painColor(firstAvg)),
       rt('→  후반 평균: ', false, 'gray'), rt(`${secondAvg}/10`, false, painColor(secondAvg)),
     ]));
+  }
+  if (armTrend && armTrend !== '데이터부족') {
+    blocks.push(p([
+      rt('왼팔 움직임 추이: ', true),
+      rt(`${armTrend === '개선' ? '📈✅' : armTrend === '악화' ? '📉⚠️' : '➡️'} ${armTrend}`, false,
+        armTrend === '개선' ? 'green' : armTrend === '악화' ? 'red' : 'default'),
+    ]));
+    if (firstArmAvg !== null && secondArmAvg !== null) {
+      blocks.push(p([
+        rt('  초반 평균: ', false, 'gray'), rt(`${firstArmAvg}/10  `, false, 'default'),
+        rt('→  후반 평균: ', false, 'gray'), rt(`${secondArmAvg}/10`, false, 'default'),
+      ]));
+    }
+  }
+
+  // 컨디션/기분 분포
+  if (conditionDist && Object.keys(conditionDist).length > 0) {
+    const condText = Object.entries(conditionDist)
+      .map(([k, v]) => `${conditionEmoji(k)}${k} ${v}회`).join('  ');
+    blocks.push(p([rt('컨디션 분포: ', true), rt(condText)]));
+  }
+  if (moodDist && Object.keys(moodDist).length > 0) {
+    const moodText = Object.entries(moodDist).map(([k, v]) => `${k} ${v}회`).join('  ');
+    blocks.push(p([rt('기분 분포: ', true), rt(moodText)]));
   }
   blocks.push(div());
 
@@ -71,6 +117,16 @@ function buildRehabReportBlocks(stats, analysis) {
     if (pa.insight) blocks.push(callout(pa.insight, '🔍'));
   }
   blocks.push(div());
+
+  // ── 2-1. 왼팔 움직임 분석 ──
+  if (analysis.armMovementAnalysis && avgArmMovement !== null) {
+    blocks.push(h1('💪 왼팔 움직임 분석'));
+    const aa = analysis.armMovementAnalysis;
+    if (aa.currentLevel) blocks.push(p([rt('현재 수준: ', true), rt(aa.currentLevel)]));
+    if (aa.trend) blocks.push(p([rt('추이: ', true), rt(aa.trend)]));
+    if (aa.insight) blocks.push(callout(aa.insight, '💪'));
+    blocks.push(div());
+  }
 
   // ── 3. 운동 패턴 ──
   blocks.push(h1('🏋️ 운동 패턴'));
@@ -91,11 +147,13 @@ function buildRehabReportBlocks(stats, analysis) {
   blocks.push(h1('📆 요일별 패턴'));
   const activeDays = dayStats.filter(d => d.count > 0);
   for (const d of activeDays) {
-    blocks.push(p([
+    const parts = [
       rt(`${d.dayOfWeek}요일 `, true),
       rt(`${d.count}회`, false, 'gray'),
-      rt(d.avgPain !== null ? `  통증 평균: ${d.avgPain}/10` : '', false, painColor(d.avgPain)),
-    ]));
+    ];
+    if (d.avgPain !== null) parts.push(rt(`  통증 ${d.avgPain}/10`, false, painColor(d.avgPain)));
+    if (d.avgArmMovement !== null) parts.push(rt(`  왼팔 ${d.avgArmMovement}/10`, false, 'gray'));
+    blocks.push(p(parts));
   }
   if (analysis.weekdayPattern) {
     const wp = analysis.weekdayPattern;
@@ -126,11 +184,24 @@ function buildRehabReportBlocks(stats, analysis) {
   // ── 7. 일별 통증 기록 ──
   blocks.push(h1('📋 일별 기록'));
   for (const d of dailyPainTrend) {
-    blocks.push(p([
+    const parts = [
       rt(`${d.dateStr}(${d.dayOfWeek}) `, true),
-      rt(d.avgPain !== null ? `통증 ${d.avgPain}/10 ` : '통증 — ', false, painColor(d.avgPain)),
-      rt(d.exercises.join(', ') || '(운동명 없음)', false, 'gray'),
-    ]));
+      rt(d.avgPain !== null ? `통증 ${d.avgPain}/10` : '통증 —', false, painColor(d.avgPain)),
+    ];
+    if (d.avgArmMovement !== null) {
+      parts.push(rt(`  왼팔 ${d.avgArmMovement}/10`, false, d.avgArmMovement >= 7 ? 'green' : 'default'));
+    }
+    if (d.conditions.length) {
+      parts.push(rt(`  ${d.conditions.map(c => conditionEmoji(c) + c).join('/')}`, false, 'gray'));
+    }
+    if (d.moods.length) {
+      parts.push(rt(`  ${d.moods.join('/')}`, false, 'gray'));
+    }
+    parts.push(rt(`\n${d.exercises.join(', ') || '(운동 기록 없음)'}`, false, 'gray'));
+    if (d.memos.length) {
+      parts.push(rt(`\n메모: ${d.memos.join(' / ')}`, false, 'blue'));
+    }
+    blocks.push(p(parts));
   }
 
   return blocks;

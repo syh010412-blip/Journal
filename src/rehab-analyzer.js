@@ -5,24 +5,46 @@ const Anthropic = require('@anthropic-ai/sdk');
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 function buildRehabPrompt(stats) {
-  const { totalSessions, totalDays, dateRange, avgPain, painTrend, firstAvg, secondAvg, topExercises, dayStats, dailyPainTrend } = stats;
+  const {
+    totalSessions, totalDays, dateRange, avgPain, avgArmMovement,
+    painTrend, armTrend, firstAvg, secondAvg, firstArmAvg, secondArmAvg,
+    topExercises, conditionDist, moodDist, dayStats, dailyPainTrend,
+  } = stats;
 
   const exerciseSummary = topExercises.slice(0, 10)
     .map(e => `  ${e.name}: ${e.count}회`)
     .join('\n') || '  (기록 없음)';
 
   const daySummary = dayStats.filter(d => d.count > 0)
-    .map(d => `  ${d.dayOfWeek}요일: ${d.count}회 세션${d.avgPain !== null ? `, 평균 통증 ${d.avgPain}` : ''}`)
+    .map(d => {
+      let line = `  ${d.dayOfWeek}요일: ${d.count}회`;
+      if (d.avgPain !== null) line += `, 평균 통증 ${d.avgPain}/10`;
+      if (d.avgArmMovement !== null) line += `, 왼팔 움직임 ${d.avgArmMovement}/10`;
+      return line;
+    })
     .join('\n');
 
   const dailySummary = dailyPainTrend.slice(-14)
-    .map(d => `  ${d.dateStr}(${d.dayOfWeek}) 세션${d.sessionCount}회 통증:${d.avgPain ?? '-'} [${d.exercises.join(', ')}]`)
+    .map(d => {
+      let line = `  ${d.dateStr}(${d.dayOfWeek})`;
+      if (d.avgPain !== null) line += ` 통증:${d.avgPain}/10`;
+      if (d.avgArmMovement !== null) line += ` 왼팔:${d.avgArmMovement}/10`;
+      if (d.conditions.length) line += ` 컨디션:${d.conditions.join('/')}`;
+      if (d.moods.length) line += ` 기분:${d.moods.join('/')}`;
+      if (d.exercises.length) line += ` [${d.exercises.join(', ')}]`;
+      if (d.memos.length) line += ` 메모: ${d.memos.join(' / ')}`;
+      return line;
+    })
     .join('\n');
 
-  const trendDesc = painTrend === '개선' ? `통증 감소 (초반 평균 ${firstAvg} → 후반 평균 ${secondAvg})`
-    : painTrend === '악화' ? `통증 증가 (초반 평균 ${firstAvg} → 후반 평균 ${secondAvg})`
-    : painTrend === '유지' ? `통증 유지 (초반 평균 ${firstAvg} → 후반 평균 ${secondAvg})`
-    : '데이터 부족';
+  const painTrendDesc = painTrend === '데이터부족' ? '데이터 부족'
+    : `통증 ${painTrend === '개선' ? '감소' : painTrend === '악화' ? '증가' : '유지'} (초반 평균 ${firstAvg} → 후반 평균 ${secondAvg})`;
+
+  const armTrendDesc = armTrend === '데이터부족' ? '데이터 부족'
+    : `왼팔 움직임 ${armTrend === '개선' ? '향상' : armTrend === '악화' ? '감소' : '유지'} (초반 평균 ${firstArmAvg} → 후반 평균 ${secondArmAvg})`;
+
+  const condSummary = Object.entries(conditionDist).map(([k, v]) => `${k}: ${v}회`).join(', ') || '기록 없음';
+  const moodSummary = Object.entries(moodDist).map(([k, v]) => `${k}: ${v}회`).join(', ') || '기록 없음';
 
   return `아래는 개인 재활 기록 데이터입니다. 분석하여 JSON을 출력하세요.
 
@@ -30,8 +52,12 @@ function buildRehabPrompt(stats) {
 
 - 기간: ${dateRange?.start} ~ ${dateRange?.end}
 - 총 세션 수: ${totalSessions}회 (운동한 날: ${totalDays}일)
-- 평균 통증 레벨: ${avgPain ?? '데이터 없음'} / 10
-- 통증 추이: ${trendDesc}
+- 평균 통증 수준: ${avgPain ?? '데이터 없음'} / 10
+- 통증 추이: ${painTrendDesc}
+- 평균 왼팔 움직임: ${avgArmMovement ?? '데이터 없음'} / 10
+- 왼팔 움직임 추이: ${armTrendDesc}
+- 컨디션 분포: ${condSummary}
+- 기분 분포: ${moodSummary}
 
 ## 자주 한 운동 (상위 10개)
 
@@ -48,11 +74,16 @@ ${dailySummary || '  (데이터 없음)'}
 ## 출력 JSON (유효한 JSON만, 마크다운 코드블록 없이)
 
 {
-  "overallSummary": "전체 재활 진행 총평 3~4문장 (통증 추이, 운동 패턴, 회복 상태)",
+  "overallSummary": "전체 재활 진행 총평 3~4문장 (통증 추이, 왼팔 움직임 향상, 운동 패턴, 회복 상태 포함)",
   "painAnalysis": {
     "currentLevel": "현재 통증 수준 평가 (낮음/보통/높음 + 근거)",
     "trend": "통증 추이 분석 (개선/악화/유지의 이유 추정)",
     "insight": "통증 패턴에서 발견한 주요 특징 2문장"
+  },
+  "armMovementAnalysis": {
+    "currentLevel": "현재 왼팔 움직임 수준 평가 (수치 포함)",
+    "trend": "왼팔 움직임 추이 (향상/감소/유지 + 근거)",
+    "insight": "왼팔 기능 회복 측면에서의 분석 2문장"
   },
   "exercisePattern": {
     "mainExercises": ["주요 운동 1", "주요 운동 2", "주요 운동 3"],
@@ -66,7 +97,7 @@ ${dailySummary || '  (데이터 없음)'}
   },
   "recoveryProgress": {
     "status": "회복 진행 상태 (초기/진행중/후기/유지)",
-    "positivePoints": "잘 되고 있는 부분 (구체적)",
+    "positivePoints": "잘 되고 있는 부분 (구체적, 통증·왼팔·컨디션 측면)",
     "concerns": "주의가 필요한 부분 또는 개선 여지",
     "insight": "전반적인 회복 경과 평가 2문장"
   },
