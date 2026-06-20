@@ -1,9 +1,9 @@
-name: 주간 일기 분석 리포트
+name: 주간 통합 리포트 (일기 + 재활)
 
 on:
   schedule:
     # 매주 일요일 오전 9시 UTC = 오후 6시 KST
-    - cron: '0 9 * * 0'
+    - cron: '0 8 * * 0'
   workflow_dispatch:
     inputs:
       start_date:
@@ -14,7 +14,7 @@ on:
         required: false
 
 jobs:
-  analyze:
+  weekly-report:
     runs-on: ubuntu-latest
     steps:
       - name: 코드 체크아웃
@@ -23,13 +23,15 @@ jobs:
       - name: 의존성 설치
         run: npm ci
 
-      - name: 일기 분석 리포트 생성
+      - name: 주간 통합 리포트 생성 (일기 + 재활)
         run: |
           if [ -n "${{ github.event.inputs.start_date }}" ] && [ -n "${{ github.event.inputs.end_date }}" ]; then
-            node src/diary-index.js "${{ github.event.inputs.start_date }}" "${{ github.event.inputs.end_date }}"
+            node src/weekly-report.js "${{ github.event.inputs.start_date }}" "${{ github.event.inputs.end_date }}"
           else
-            node src/diary-index.js
+            node src/weekly-report.js
           fi
         env:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NOTION_DIARY_DB_ID: 213a3bd9-3958-8045-8e38-dc6e9183fe9a
+          NOTION_DIARY_REPORT_DB_ID: 34da3bd9-3958-8007-82ee-efb717e2658f
