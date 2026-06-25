@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const CONFIG_PATH = path.join(__dirname, '..', '분析기준.txt');
+const CONFIG_PATH = path.join(__dirname, '..', '분석기준.txt');
 
 function parseConfigFile() {
   const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
@@ -109,8 +109,8 @@ function loadConfig() {
     activeEnd: parseHHMM(gapRaw['활동 종료'] || '23:00'),
   };
 
-  const ANALYSIS_FOCUS = (sections['분析 관점'] || []).filter(Boolean);
-  const ANALYSIS_STYLE = parseKV(sections['분析 스타일'] || []);
+  const ANALYSIS_FOCUS = (sections['분석 관점'] || []).filter(Boolean);
+  const ANALYSIS_STYLE = parseKV(sections['분석 스타일'] || []);
 
   const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 
