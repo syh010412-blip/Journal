@@ -3,11 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node src/diary-index.js"
+    "diary": "node src/diary-index.js",
+    "rehab": "node src/rehab-index.js",
+    "weekly": "node src/weekly-report.js",
+    "weekly-review": "node src/weekly-review-index.js",
+    "auth": "node src/weekly-google-auth.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@notionhq/client": "^2.2.15",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "googleapis": "^144.0.0"
   }
 }
