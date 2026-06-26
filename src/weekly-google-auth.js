@@ -52,33 +52,47 @@ function saveToken(oauth2) {
   console.log('[auth] 토큰 저장 완료:', tokenPath);
 }
 
+async function exchangeCode(code) {
+  const oauth2 = loadCredentials();
+  const { tokens } = await oauth2.getToken(code);
+  oauth2.setCredentials(tokens);
+  saveToken(oauth2);
+  return oauth2;
+}
+
 async function authorize() {
+  const oauth2 = loadCredentials();
+  const authUrl = oauth2.generateAuthUrl({
+    access_type: 'offline',
+    scope: SCOPES,
+    prompt: 'consent',
+  });
+
+  console.log('\n[auth] 아래 링크를 브라우저에서 열어 Google 계정으로 로그인하세요:\n');
+  console.log(authUrl);
+  console.log('\n[auth] 로그인 후 브라우저 주소창에 표시된 URL에서');
+  console.log('[auth] code= 뒤의 값을 복사해 GOOGLE_AUTH_CODE 환경변수로 설정하세요.');
+  console.log('[auth] 예: GOOGLE_AUTH_CODE=4/0AX... node src/weekly-google-auth.js\n');
+
+  // GOOGLE_AUTH_CODE 환경변수가 설정되어 있으면 바로 교환
+  const manualCode = process.env.GOOGLE_AUTH_CODE;
+  if (manualCode) {
+    console.log('[auth] GOOGLE_AUTH_CODE로 토큰 교환 중...');
+    return exchangeCode(manualCode);
+  }
+
+  // 로컬 서버로 리다이렉트 자동 수신 (브라우저와 같은 머신에서 실행 시)
   return new Promise((resolve, reject) => {
-    const oauth2 = loadCredentials();
-    const authUrl = oauth2.generateAuthUrl({
-      access_type: 'offline',
-      scope: SCOPES,
-      prompt: 'consent',
-    });
-
-    console.log('[auth] 브라우저에서 Google 인증을 진행해주세요...');
-    exec(`open "${authUrl}"`);
-
     const server = http.createServer(async (req, res) => {
       const url = new URL(req.url, `http://localhost:${REDIRECT_PORT}`);
       const code = url.searchParams.get('code');
-      if (!code) {
-        res.writeHead(400); res.end('No code');
-        return;
-      }
+      if (!code) { res.writeHead(400); res.end('No code'); return; }
       try {
-        const { tokens } = await oauth2.getToken(code);
-        oauth2.setCredentials(tokens);
-        saveToken(oauth2);
+        const authed = await exchangeCode(code);
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end('<h1>인증 완료! 이 탭을 닫아도 됩니다.</h1>');
         server.close();
-        resolve(oauth2);
+        resolve(authed);
       } catch (err) {
         res.writeHead(500); res.end('Token error');
         server.close();
@@ -87,7 +101,7 @@ async function authorize() {
     });
 
     server.listen(REDIRECT_PORT, () => {
-      console.log(`[auth] 리다이렉트 대기 중 (http://localhost:${REDIRECT_PORT})...`);
+      console.log(`[auth] 로컬 서버 대기 중 (http://localhost:${REDIRECT_PORT})...`);
     });
   });
 }
