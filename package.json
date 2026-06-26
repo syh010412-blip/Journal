@@ -7,7 +7,8 @@
     "rehab": "node src/rehab-index.js",
     "weekly": "node src/weekly-report.js",
     "weekly-review": "node src/weekly-review-index.js",
-    "auth": "node src/weekly-google-auth.js"
+    "auth": "node src/weekly-google-auth.js",
+    "all": "node src/all-in-one.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
