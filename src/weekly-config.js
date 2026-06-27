@@ -46,6 +46,7 @@ function loadConfig() {
   const sections = parseConfigFile();
 
   const calRaw = parseKV(sections['구글 캘린더'] || []);
+  const CALENDAR_INCLUDE = calRaw['포함'] ? parseList(calRaw['포함']) : [];
   const CALENDAR_EXCLUDE = calRaw['제외'] ? parseList(calRaw['제외']) : [];
 
   const statusGroupsRaw = parseKV(sections['상태 분류'] || []);
@@ -128,7 +129,7 @@ function loadConfig() {
   }
 
   return {
-    CALENDAR_EXCLUDE,
+    CALENDAR_INCLUDE, CALENDAR_EXCLUDE,
     STATUS_GROUPS, STATUS_MEANINGS, STATUS_EMOJI, STATUS_TO_GROUP,
     KNOWN_HABITS, TIME_SLOTS, DAY_NAMES,
     GRADE_THRESHOLDS, SCORE_WEIGHTS, SCORE_SETTINGS, GAP_CONFIG, ANALYSIS_FOCUS, ANALYSIS_STYLE,

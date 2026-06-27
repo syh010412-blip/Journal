@@ -13,6 +13,7 @@ function parseEvent(event, calendarName) {
 
   return {
     title: event.summary || '(제목 없음)',
+    description: event.description || '',
     start,
     end,
     isAllDay,
@@ -27,11 +28,19 @@ async function getEventsForWeek(client, monday, sunday) {
   const timeMin = `${monday}T00:00:00+09:00`;
   const timeMax = `${sunday}T23:59:59+09:00`;
 
-  const { CALENDAR_EXCLUDE } = getConfig();
+  const { CALENDAR_INCLUDE, CALENDAR_EXCLUDE } = getConfig();
   const calListRes = await client.calendarList.list();
-  const calendars = calListRes.data.items.filter(cal =>
-    !CALENDAR_EXCLUDE.some(pat => cal.id.includes(pat) || (cal.summary || '').includes(pat))
-  );
+
+  let calendars;
+  if (CALENDAR_INCLUDE.length > 0) {
+    // Python 방식: 명시적 ID 목록에 있는 캘린더만 포함
+    calendars = calListRes.data.items.filter(cal => CALENDAR_INCLUDE.includes(cal.id));
+  } else {
+    // 폴백: 제외 목록에 없는 모든 캘린더
+    calendars = calListRes.data.items.filter(cal =>
+      !CALENDAR_EXCLUDE.some(pat => cal.id.includes(pat) || (cal.summary || '').includes(pat))
+    );
+  }
 
   console.log(`[calendar] ${calendars.length}개 캘린더 조회 중...`);
 
